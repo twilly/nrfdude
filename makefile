@@ -17,4 +17,4 @@ tags:
 	ctags .
 
 clean:
-	-rm $(BINS) *.o
+	-rm $(BINS) *.o tags
