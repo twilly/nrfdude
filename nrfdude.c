@@ -1,9 +1,27 @@
+/* nrfdude.c: programmer for the nRF24LU1 series
+ *
+ * Copyright (C) 2012 Tristan Willy <tristan.willy at gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <libusb.h>
 #include <errno.h>
 #include <string.h>
+#include "ihex.h"
 
 #define DEVSTRNAME          "nRF24LU1+"
 #define VENDOR_NORDIC       0x1915
@@ -34,6 +52,23 @@ static int nrf_bulk(devp dev, unsigned char endpoint, void *data, int length){
 }
 
 
+/* locate the first byte in 's' that does not match 'c' */
+const void *memnotchr(const void *s, int c, size_t n){
+    const unsigned char *s1 = (const unsigned char *)s;
+    const unsigned char *s2 = s1 + n;
+
+    while(s1 != s2 && *s1 == (unsigned char)c){
+        s1++;
+    }
+
+    if(s1 != s2){
+        return (const void *)s1;
+    } else {
+        return NULL;
+    }
+}
+
+
 /* execute one command */
 int nrf_cmd(devp dev, void *cmd, int cmdlen, void *ret, int retlen){
     if(nrf_bulk(dev, OUT, cmd, cmdlen)){
@@ -46,59 +81,59 @@ int nrf_cmd(devp dev, void *cmd, int cmdlen, void *ret, int retlen){
 }
 
 
-/* dump all of device memory to fn */
+/* dump all of device flash to fn */
 int nrf_dump(devp dev, const char *fn){
     unsigned char cmd[2], data[64];
     FILE *fp = NULL;
-    int ecode, block;
+    int ecode, block, sub_block;
+    IHexRecord record;
 
     if((fp = fopen(fn, "w+")) == NULL){
         ecode = -1;
         goto err;
     }
 
-    /* clear address MSB ("lower") */
-    cmd[0] = 0x06;
-    cmd[1] = 0x00;
-    if(nrf_cmd(dev, cmd, 2, data, 1)){
-        ecode = -2;
-        goto err;
-    }
-
     /* dump */
-    cmd[0] = 0x03;
-    for(block = 0; block < 0x100; block++){
+    for(block = 0; block < 0x200; block++){
+        /* set address MSB */
+        if((block % 0x100) == 0){
+            cmd[0] = 0x06;
+            cmd[1] = (unsigned char)(block / 256);
+            if(nrf_cmd(dev, cmd, 2, data, 1)){
+                ecode = -2;
+                goto err;
+            }
+        }
+        /* request the block */
+        cmd[0] = 0x03;
         cmd[1] = (unsigned char)block;
         if(nrf_cmd(dev, cmd, 2, data, 64)){
             ecode = -2;
             goto err;
         }
-        if(fwrite(data, 1, 64, fp) != 64){
-            ecode = -3;
-            goto err;
+        /* write two records for this block
+         * records are only written if the block contains something not 0xFF
+         */
+        for(sub_block = 0; sub_block < 2; sub_block++){
+            record.type = IHEX_TYPE_00;
+            memcpy(record.data, &data[sub_block * 32], 32);
+            record.dataLen = 32;
+            record.address = block * 64 + sub_block * 32;
+            if(memnotchr(record.data, 0xFF, 32) &&
+                    Write_IHexRecord(&record, fp)){
+                ecode = -3;
+                goto err;
+            }
         }
     }
 
-    /* set address MSB ("upper") */
-    cmd[0] = 0x06;
-    cmd[1] = 0x01;
-    if(nrf_cmd(dev, cmd, 2, data, 1)){
-        ecode = -2;
+    /* write EoF record */
+    record.type = IHEX_TYPE_01;
+    record.address = 0;
+    record.dataLen = 0;
+    if(Write_IHexRecord(&record, fp)){
+        ecode = -3;
         goto err;
-    }
-
-    /* dump */
-    cmd[0] = 0x03;
-    for(block = 0; block < 0x100; block++){
-        cmd[1] = (unsigned char)block;
-        if(nrf_cmd(dev, cmd, 2, data, 64)){
-            ecode = -2;
-            goto err;
-        }
-        if(fwrite(data, 1, 64, fp) != 64){
-            ecode = -3;
-            goto err;
-        }
     }
 
     ecode = 0;

@@ -8,7 +8,7 @@ BINS=nrfdude
 
 all: $(BINS)
 
-nrfdude: nrfdude.o
+nrfdude: nrfdude.o ihex.o
 	gcc $(LDFLAGS) -o $@ $^ $(LIBS)
 
 .PHONY: tags clean
