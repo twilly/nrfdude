@@ -24,7 +24,7 @@
 #include <string.h>
 #include "ihex.h"
 
-#define VERSION_STRING      "0.1.0"
+#define VERSION_STRING      "0.1.1"
 #define DEVSTRNAME          "nRF24LU1+"
 #define VENDOR_NORDIC       0x1915
 #define PID_NRF24LU         0x0101
