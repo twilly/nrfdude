@@ -24,6 +24,7 @@
 #include <string.h>
 #include "ihex.h"
 
+#define VERSION_STRING      "0.1.0"
 #define DEVSTRNAME          "nRF24LU1+"
 #define VENDOR_NORDIC       0x1915
 #define PID_NRF24LU         0x0101
@@ -429,6 +430,10 @@ int main(int argc, char *argv[]){
     libusb_context *usb = NULL;
     devp dev = NULL;
     char *r_fn = NULL, *w_fn = NULL;
+
+    printf("nrfdude v%s, "
+            "(C)2012 Tristan Willy <tristan dot willy@gmail.com>\n",
+            VERSION_STRING);
 
     while((c = getopt(argc, argv, "hr:w:")) != -1){
         switch(c){
