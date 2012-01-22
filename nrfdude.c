@@ -32,6 +32,7 @@
 #define IN                  0x81
 #define OUT                 0x01
 #define TIMEOUT             2000
+#define BOOTLOADER_VECTOR   0x7800U
 
 
 /* typedef because libusb has terrible names */
@@ -108,7 +109,7 @@ bool bitisset(void *bv, int bit){
  * block-aligned address it tries to write.
  */
 static bool addr_valid(unsigned addr){
-    if((protect_bootloader && addr < 0x7800U) ||
+    if((protect_bootloader && addr < BOOTLOADER_VECTOR) ||
             (!protect_bootloader && addr < 0x8000U)){
         return true;
     } else {
