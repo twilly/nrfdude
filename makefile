@@ -11,6 +11,9 @@ all: $(BINS)
 nrfdude: nrfdude.o ihex.o
 	gcc $(LDFLAGS) -o $@ $^ $(LIBS)
 
+release: CFLAGS=-O2 -Wall -Werror $(LIBUSB_CFLAGS)
+release: $(BINS)
+
 .PHONY: tags clean
 
 tags:
