@@ -48,7 +48,9 @@ static void print_help(void){
             "Options:\n"
             " -h                    : This message\n"
             " -r <file>             : Read from device to <file>\n"
-            " -w <file>             : Write from <file> to device\n");
+            " -w <file>             : Write from <file> to device\n"
+            " -x                    : Allow writing to 0x7800-0x7FFF"
+                " (bootloader)\n");
 }
 
 
@@ -436,7 +438,7 @@ int main(int argc, char *argv[]){
             "(C)2012 Tristan Willy <tristan dot willy@gmail.com>\n",
             VERSION_STRING);
 
-    while((c = getopt(argc, argv, "hr:w:")) != -1){
+    while((c = getopt(argc, argv, "hxr:w:")) != -1){
         switch(c){
         case 'h':
             print_help();
@@ -446,6 +448,9 @@ int main(int argc, char *argv[]){
             break;
         case 'w':
             w_fn = optarg;
+            break;
+        case 'x':
+            protect_bootloader = false;
             break;
         default:
             printf("[!] Invalid switch: %c\n", c);
