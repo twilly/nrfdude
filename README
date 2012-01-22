@@ -1,0 +1,80 @@
+= nrfdude =
+
+  nrfdude reads and writes flash on nRF24LU1+ devices using Nordic's
+factory-programmed USB loader. This program may be used with with custom boards
+or development kits, such as Sparkfun's nRF24LU1+ breakout (WRL-09034).
+
+WARNING: this tool is for experienced embedded developers. Failure to read and
+fully understand nRF24LU1+'s datasheet and nrfdude's operation can result in
+non-operation and/or damnage. Recovery may not be possible without additional
+tools, if at all.
+
+  Unlike the better-known avrdude and Arduino platform, nrfdude is inflexible:
+
+  - nrfdude is an immature tool (few options and not well vetted).
+  - Firmware must be in Intel HEX format.
+  - Only the main block, not the info block, can be written.
+  - The nRF24LU1+ loader does _NOT_ have automatic reset.
+  - The nRF24LU1+ loader is _NOT_ a "real" bootloader. It will not always
+    run on power up!
+  - Disabling the USB loader's main block readback function will break nrfdude.
+
+
+= Building =
+
+  libusb-1.0 is required. Edit "config.mk" if the included pkg-config based
+configuration does not work on your platform. Make sure your system has
+development headers and not just the binaries.
+
+  While the code isn't complex and should compile and work on any *NIX machine,
+only Linux (Ubuntu) on a 64 bit x86 has been tested.
+
+  To build:
+
+$ make
+
+  To rebuild:
+
+$ make clean all
+
+
+= Usage =
+
+ ---------------
+ !!! WARNING !!!
+ ---------------
+
+  The nRF24LU1+ loader will not run on power up! The only way to get back into
+the loader is to manually jump to it in your firmware! The entry point for the
+loader on my particular chip is 0x7800. I highly recommend dumping your
+device's firmware and confirming the loader's memory location before
+continuing. Make sure your program always has a way to get back to the loader,
+such as reading a switch, if you wish to continue using nrfdude.
+
+  If your chip has a different loader location, then the nrfdude's write
+protection will not work. Modify the source and recompile before continuing
+use of nrfdude.
+
+Usage: nrfdude [options]
+Options:
+ -h                    : This message
+ -r <file>             : Read from device to <file>
+ -w <file>             : Write from <file> to device
+ -x                    : Allow writing to 0x7800-0x7FFF (bootloader)
+
+
+= Notes =
+
+  1. Reading/dumping firmware may produce a HEX file that is smaller than
+     expected. Records that have unwritten flash (only 0xFF bytes) are not
+     written out.
+
+  2. Due to outside decisions, writing to flash is not the fastest or low-wear.
+     Keep in mind the nRF24LU1+'s flash only has 1000 write cycles. Buy or
+     build a few boards if you expect fast and repetitive development cycles.
+
+  3. Write speeds may vary since nrfdude will not rewrite an unchanged flash
+     page.
+
+  4. Writes are implemented as a whole device read-modify-write operation. If
+     nrfdude cannot read flash, then it cannot reliably write flash.
