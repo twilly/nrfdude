@@ -333,7 +333,7 @@ int nrf_program(devp dev, const char *fn){
             ecode = -6;
             goto err;
         }
-        /* only write if the ihx record changing anything */
+        /* only write if the ihx record changes memory */
         if(memcmp(&flash_copy[first_addr], record.data, record.dataLen)){
             /* copy record into memory */
             memcpy(&flash_copy[first_addr], record.data, record.dataLen);
