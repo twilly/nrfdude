@@ -1,1 +1,2 @@
-SUBSYSTEM=="usb", SYSFS{idVendor}=="1915", SYSFS{idProduct}=="0101", ACTION=="add", GROUP="admin", MODE="0664"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="0101", ACTION=="add", GROUP="admin", MODE="0664"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="001a", ACTION=="add", GROUP="admin", MODE="0664"
