@@ -125,6 +125,14 @@ int nrfgo_erase_memory(devp dev){
 
 int nrfgo_reset_device(devp dev){
     unsigned char cmd[1];
+    unsigned char ret[3];
+
+    cmd[0] = 0x03;
+    if(nrfgo_cmd(dev, cmd, sizeof(cmd), ret, sizeof(ret))){
+        return -1;
+    }
+    nrfgo_wait_for_ready(dev);
+
     cmd[0] = 0x01;
     if(nrf_bulk(dev, 0x02, cmd, sizeof(cmd))){
         return -1;

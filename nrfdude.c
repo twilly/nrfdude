@@ -39,8 +39,11 @@ static void print_help(void){
             " -h                    : This message\n"
             " -r <file>             : Read from device to <file>\n"
             " -w <file>             : Write from <file> to device\n"
-            " -x                    : Allow writing to 0x7800-0x7FFF"
-                " (bootloader)\n");
+            " -x                    : Allow writing to 0x7800-0x7FFF (bootloader)\n"
+            " -d <device>           : 1: nRF24LU, 2: nRF8200 on nRFgo\n"
+            " -n <number>           : Set led display on nRFgo motherboard\n"
+            " -f                    : Reset device\n"
+                );
 }
 
 
