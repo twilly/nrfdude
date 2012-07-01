@@ -89,14 +89,18 @@ static int nrfgo_stop_programming_mode(devp dev){
 
 int nrfgo_set_led_number(devp dev, int number){
     unsigned char cmd[2];
-    if(number > 9) number = 9;
-    else if(number < 0) number = 0;
-    printf("Setting number on led:\n");
+    printf("Setting number on the led display\n");
+    if(number > 9 || number < 0) {
+        printf("Invalid number. Setting to 0.\n");
+        number = 0;
+    }
+    else printf("Setting it to %d\n",number);
     cmd[0] = 0x06;
     cmd[1] = (unsigned char)number;
     if(nrf_bulk(dev, 0x02, cmd, sizeof(cmd))){
         return -1;
     }
+    nrfgo_wait_for_ready(dev);
     return 0;
 }
 

@@ -440,12 +440,13 @@ int main(int argc, char *argv[]){
     libusb_context *usb = NULL;
     devp dev = NULL;
     int nrf_dev = 2; 
+    int nrfgo_no = -1;
     int pid = 0;
     char *r_fn = NULL, *w_fn = NULL;
 
     printf("nrfdude v%s \n", VERSION_STRING);
 
-    while((c = getopt(argc, argv, "hxr:w:d:")) != -1){
+    while((c = getopt(argc, argv, "hxr:w:d:n:")) != -1){
         switch(c){
         case 'h':
             print_help();
@@ -461,6 +462,9 @@ int main(int argc, char *argv[]){
             break;
         case 'd':
             nrf_dev = atoi(optarg);
+            break;
+        case 'n':
+            nrfgo_no = atoi(optarg);
             break;
         default:
             printf("[!] Invalid switch: %c\n", c);
@@ -506,6 +510,12 @@ int main(int argc, char *argv[]){
 
     if(nrf_dev == 1)
         printf("[*] %s version %s\n", DEVSTRNAME, nrf_version_str(dev));
+
+    if(nrf_dev == 2){
+        if(nrfgo_no > -1)
+            nrfgo_set_led_number(dev, nrfgo_no);
+    }
+
 
     /* reading memory to file */
     if(r_fn){
