@@ -442,11 +442,12 @@ int main(int argc, char *argv[]){
     int nrf_dev = 2; 
     int nrfgo_no = -1;
     int pid = 0;
+    bool reset_device = false;
     char *r_fn = NULL, *w_fn = NULL;
 
     printf("nrfdude v%s \n", VERSION_STRING);
 
-    while((c = getopt(argc, argv, "hxr:w:d:n:")) != -1){
+    while((c = getopt(argc, argv, "hxr:w:d:n:f")) != -1){
         switch(c){
         case 'h':
             print_help();
@@ -465,6 +466,9 @@ int main(int argc, char *argv[]){
             break;
         case 'n':
             nrfgo_no = atoi(optarg);
+            break;
+        case 'f':
+            reset_device = true;
             break;
         default:
             printf("[!] Invalid switch: %c\n", c);
@@ -514,6 +518,8 @@ int main(int argc, char *argv[]){
     if(nrf_dev == 2){
         if(nrfgo_no > -1)
             nrfgo_set_led_number(dev, nrfgo_no);
+        if(reset_device)
+            nrfgo_reset_device(dev);
     }
 
 

@@ -29,11 +29,8 @@ int nrfgo_program(devp dev, const char *fn){
     }
 
     nrfgo_set_programming_mode(dev);
-    nrfgo_wait_for_ready(dev);
     nrfgo_set_to_main_flash(dev);
-    nrfgo_wait_for_ready(dev);
     nrfgo_erase_memory(dev);
-    nrfgo_wait_for_ready(dev);
 
     while((rc = Read_IHexRecord(&record,fp)) == IHEX_OK && record.type != IHEX_TYPE_01){
         cmd[0] = 0x2c;
@@ -65,6 +62,7 @@ static int nrfgo_set_to_main_flash(devp dev){
     if(nrf_bulk(dev, 0x02, cmd, sizeof(cmd))){
         return -1;
     }
+    nrfgo_wait_for_ready(dev);
     return 0;
 }
 
@@ -75,6 +73,7 @@ static int nrfgo_set_programming_mode(devp dev){
     if(nrf_bulk(dev, 0x02, cmd, sizeof(cmd))){
         return -1;
     }
+    nrfgo_wait_for_ready(dev);
     return 0;
 }
 
@@ -120,6 +119,17 @@ int nrfgo_erase_memory(devp dev){
     if(nrf_bulk(dev, 0x02, cmd, sizeof(cmd))){
         return -1;
     }
+    nrfgo_wait_for_ready(dev);
+    return 0;
+}
+
+int nrfgo_reset_device(devp dev){
+    unsigned char cmd[1];
+    cmd[0] = 0x01;
+    if(nrf_bulk(dev, 0x02, cmd, sizeof(cmd))){
+        return -1;
+    }
+    nrfgo_wait_for_ready(dev);
     return 0;
 }
 
