@@ -269,6 +269,7 @@ int nrf_program_nrf24lu(devp dev, const char *fn){
     unsigned int first_addr, last_addr;
     IHexRecord record;
 
+    printf("Programming nRF24LU\n");
     /* read the entire ROM into memory
      *
      * Why? Because Nordic doesn't have decent software. Their flash write
@@ -403,7 +404,6 @@ err:
 
 int nrf_program(devp dev, int nrf_dev, const char *fn){
     int rc = 0;
-    printf("Programming\n");
     switch(nrf_dev){
         case 1:
             rc = nrf_program_nrf24lu(dev,fn);
@@ -504,7 +504,7 @@ int main(int argc, char *argv[]){
         goto error;
     }
 
-    if(nrf_dev == 0)
+    if(nrf_dev == 1)
         printf("[*] %s version %s\n", DEVSTRNAME, nrf_version_str(dev));
 
     /* reading memory to file */
