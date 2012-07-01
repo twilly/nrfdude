@@ -13,3 +13,6 @@ endif(NOT USB_FOUND)
 
 target_link_libraries (nrfdude ${USB_LIBRARIES})
 include_directories (${USB_INCLUDE_DIRS})
+
+install (TARGETS nrfdude DESTINATION bin)
+install (FILES 41-nrfdude.rules DESTINATION "/lib/udev/rules.d")
