@@ -442,7 +442,7 @@ int main(int argc, char *argv[]){
     int c, exit_code, rc;
     libusb_context *usb = NULL;
     devp dev = NULL;
-    int nrf_dev = 2; 
+    int nrf_dev = 1; 
     int nrfgo_no = -1;
     int pid = 0;
     bool reset_device = false;
@@ -496,6 +496,7 @@ int main(int argc, char *argv[]){
             break;
         default:
             pid = 0;
+            printf("You didn't specify a device to program (use the -d option)\n");
             goto error;
     }
 
