@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+/* we should not overwrite the bootloader by default */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -22,24 +25,11 @@
 #include <libusb.h>
 #include <errno.h>
 #include <string.h>
+#include "nrfdude.h"
+#include "nrfgo.h"
 #include "ihex.h"
 
-#define VERSION_STRING      "0.1.0"
-#define DEVSTRNAME          "nRF24LU1+"
-#define VENDOR_NORDIC       0x1915
-#define PID_NRF24LU         0x0101
-#define FLASH_SIZE          32768
-#define IN                  0x81
-#define OUT                 0x01
-#define TIMEOUT             2000
-#define BOOTLOADER_VECTOR   0x7800U
 
-
-/* typedef because libusb has terrible names */
-typedef libusb_device_handle * devp;
-
-
-/* we should not overwrite the bootloader by default */
 static bool protect_bootloader = true;
 
 
@@ -49,8 +39,11 @@ static void print_help(void){
             " -h                    : This message\n"
             " -r <file>             : Read from device to <file>\n"
             " -w <file>             : Write from <file> to device\n"
-            " -x                    : Allow writing to 0x7800-0x7FFF"
-                " (bootloader)\n");
+            " -x                    : Allow writing to 0x7800-0x7FFF (bootloader)\n"
+            " -d <device>           : 1: nRF24LU, 2: nRF8200 on nRFgo\n"
+            " -n <number>           : Set led display on nRFgo motherboard\n"
+            " -f                    : Reset device\n"
+                );
 }
 
 
@@ -121,7 +114,7 @@ static bool addr_valid(unsigned addr){
 
 
 /* bulk transfer */
-static int nrf_bulk(devp dev, unsigned char endpoint, void *data, int length){
+int nrf_bulk(devp dev, unsigned char endpoint, void *data, int length){
     int trans, rc;
 
     rc = libusb_bulk_transfer(dev, endpoint, data, length, &trans, TIMEOUT);
@@ -270,14 +263,16 @@ int nrf_compare_block(devp dev, int block, void *data){
 
 
 
+
 /* write fn to device */
-int nrf_program(devp dev, const char *fn){
+int nrf_program_nrf24lu(devp dev, const char *fn){
     unsigned char cmd[2], data[64], *flash_copy, dirty_bv[64];
     FILE *fp = NULL;
     int ecode, block, page, rc;
     unsigned int first_addr, last_addr;
     IHexRecord record;
 
+    printf("Programming nRF24LU\n");
     /* read the entire ROM into memory
      *
      * Why? Because Nordic doesn't have decent software. Their flash write
@@ -410,6 +405,21 @@ err:
     return ecode;
 }
 
+int nrf_program(devp dev, int nrf_dev, const char *fn){
+    int rc = 0;
+    switch(nrf_dev){
+        case 1:
+            rc = nrf_program_nrf24lu(dev,fn);
+            break;
+        case 2:
+            rc = nrfgo_program(dev,fn);
+            break;
+        default:
+            printf("No nRF device specified\n");
+            rc = -1;
+    }
+    return rc;
+}
 
 const char *nrf_version_str(devp dev){
     static unsigned char verbin[2];
@@ -432,13 +442,15 @@ int main(int argc, char *argv[]){
     int c, exit_code, rc;
     libusb_context *usb = NULL;
     devp dev = NULL;
+    int nrf_dev = 1; 
+    int nrfgo_no = -1;
+    int pid = 0;
+    bool reset_device = false;
     char *r_fn = NULL, *w_fn = NULL;
 
-    printf("nrfdude v%s, "
-            "(C)2012 Tristan Willy <tristan dot willy@gmail.com>\n",
-            VERSION_STRING);
+    printf("nrfdude v%s \n", VERSION_STRING);
 
-    while((c = getopt(argc, argv, "hxr:w:")) != -1){
+    while((c = getopt(argc, argv, "hxr:w:d:n:f")) != -1){
         switch(c){
         case 'h':
             print_help();
@@ -451,6 +463,15 @@ int main(int argc, char *argv[]){
             break;
         case 'x':
             protect_bootloader = false;
+            break;
+        case 'd':
+            nrf_dev = atoi(optarg);
+            break;
+        case 'n':
+            nrfgo_no = atoi(optarg);
+            break;
+        case 'f':
+            reset_device = true;
             break;
         default:
             printf("[!] Invalid switch: %c\n", c);
@@ -466,9 +487,22 @@ int main(int argc, char *argv[]){
     /* Spamming stdout is NOT OK. */
     libusb_set_debug(usb, 0);
 
-    if((dev = libusb_open_device_with_vid_pid(usb, VENDOR_NORDIC, PID_NRF24LU))
+    switch(nrf_dev){
+        case 1:
+            pid = PID_NRF24LU;
+            break;
+        case 2:
+            pid = PID_NRFGO;
+            break;
+        default:
+            pid = 0;
+            printf("You didn't specify a device to program (use the -d option)\n");
+            goto error;
+    }
+
+    if((dev = libusb_open_device_with_vid_pid(usb, VENDOR_NORDIC, pid))
             == NULL){
-        printf("[!] Failed to open %04X:%04X.\n", VENDOR_NORDIC, PID_NRF24LU);
+        printf("[!] Failed to open %04X:%04X.\n", VENDOR_NORDIC, pid);
         goto error;
     }
 
@@ -482,7 +516,16 @@ int main(int argc, char *argv[]){
         goto error;
     }
 
-    printf("[*] %s version %s\n", DEVSTRNAME, nrf_version_str(dev));
+    if(nrf_dev == 1)
+        printf("[*] %s version %s\n", DEVSTRNAME, nrf_version_str(dev));
+
+    if(nrf_dev == 2){
+        if(nrfgo_no > -1)
+            nrfgo_set_led_number(dev, nrfgo_no);
+        if(reset_device)
+            nrfgo_reset_device(dev);
+    }
+
 
     /* reading memory to file */
     if(r_fn){
@@ -495,7 +538,7 @@ int main(int argc, char *argv[]){
     /* writing file to device */
     if(w_fn){
         printf("[*] Programming device with %s\n", w_fn);
-        if((rc = nrf_program(dev, w_fn))){
+        if((rc = nrf_program(dev, nrf_dev, w_fn))){
             printf("[!] Failed to program: %d/%s\n", rc, strerror(errno));
         }
     }
