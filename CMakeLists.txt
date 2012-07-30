@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project (nrfdude)
+project (nrfdude C)
 
 add_executable (nrfdude nrfdude.c ihex.c nrfgo.c)
 set(CMAKE_C_FLAGS "-g -Wall -Werror -O2")
