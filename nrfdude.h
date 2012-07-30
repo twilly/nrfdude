@@ -21,7 +21,7 @@
 
 #include <libusb.h>
 
-#define VERSION_STRING      "0.1.1-beta"
+#define VERSION_STRING      "0.1.1"
 #define DEVSTRNAME          "nRF24LU1+"
 #define VENDOR_NORDIC       0x1915
 #define PID_NRF24LU         0x0101
