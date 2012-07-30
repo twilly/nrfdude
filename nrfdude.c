@@ -272,7 +272,8 @@ int nrf_program_nrf24lu(devp dev, const char *fn){
     unsigned int first_addr, last_addr;
     IHexRecord record;
 
-    printf("Programming nRF24LU\n");
+    printf("[*] Programming nRF24LU\n");
+
     /* read the entire ROM into memory
      *
      * Why? Because Nordic doesn't have decent software. Their flash write
@@ -415,7 +416,7 @@ int nrf_program(devp dev, int nrf_dev, const char *fn){
             rc = nrfgo_program(dev,fn);
             break;
         default:
-            printf("No nRF device specified\n");
+            printf("[!] No nRF device specified\n");
             rc = -1;
     }
     return rc;
@@ -496,7 +497,8 @@ int main(int argc, char *argv[]){
             break;
         default:
             pid = 0;
-            printf("You didn't specify a device to program (use the -d option)\n");
+            printf("[!] You didn't specify a device to program "
+                    "(use the -d option)\n");
             goto error;
     }
 

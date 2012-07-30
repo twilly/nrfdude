@@ -39,7 +39,7 @@ int nrfgo_program(devp dev, const char *fn){
     int i;
     unsigned char cmd[IHEX_MAX_DATA_LEN/2+2];
     IHexRecord record;
-    printf("Programming nRFgo\n");
+    printf("[*] Programming nRFgo\n");
 
     if((fp = fopen(fn,"r")) == NULL){
         return -1;
@@ -62,7 +62,7 @@ int nrfgo_program(devp dev, const char *fn){
         }
         printf("\n");
         if(nrf_bulk(dev, 0x02, cmd, record.dataLen+4)){
-            printf("Error writing flash");
+            printf("[!] Error writing flash");
             return -1;
         }
     }
@@ -105,12 +105,12 @@ static int nrfgo_stop_programming_mode(devp dev){
 
 int nrfgo_set_led_number(devp dev, int number){
     unsigned char cmd[2];
-    printf("Setting number on the led display\n");
+    printf("[*] Setting number on the led display\n");
     if(number > 9 || number < 0) {
-        printf("Invalid number. Setting to 0.\n");
+        printf("[!] Invalid number. Setting to 0.\n");
         number = 0;
     }
-    else printf("Setting it to %d\n",number);
+    else printf("[*] Setting it to %d\n",number);
     cmd[0] = 0x06;
     cmd[1] = (unsigned char)number;
     if(nrf_bulk(dev, 0x02, cmd, sizeof(cmd))){
