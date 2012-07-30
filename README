@@ -1,6 +1,7 @@
-= nrfdude =
+nrfdude
+=======
 
-  nrfdude reads and writes flash on nRF24LU1+ devices using Nordic's
+nrfdude reads and writes flash on nRF24LU1+ devices using Nordic's
 factory-programmed USB loader. This program may be used with with custom boards
 or development kits, such as Sparkfun's nRF24LU1+ breakout (WRL-09034).
 
@@ -20,51 +21,60 @@ tools, if at all.
   - Disabling the USB loader's main block readback function will break nrfdude.
 
 
-= Building =
+Building
+--------
 
-  libusb-1.0 is required. Edit "config.mk" if the included pkg-config based
-configuration does not work on your platform. Make sure your system has
-development headers and not just the binaries.
+libusb-1.0 is required.  Make sure your system has development headers and not
+just the binaries.
 
-  While the code isn't complex and should compile and work on any *NIX machine,
+While the code isn't complex and should compile and work on any *NIX machine,
 only Linux (Ubuntu) on a 64 bit x86 has been tested.
 
-  To build:
+To build:
 
-$ cmake .
-$ make
+    $ cmake .
+    $ make
 
-  To rebuild:
+To rebuild:
 
-$ make clean all
+    $ make clean all
+
+To install:
+
+    $ sudo make install
 
 
-= Usage =
+Usage
+-----
 
- ---------------
- !!! WARNING !!!
- ---------------
+_WARNING_: The nRF24LU1+ loader will not run on power up! The only way to get
+back into the loader is to manually jump to it in your firmware! The entry
+point for the loader on my particular chip is 0x7800. I highly recommend
+dumping your device's firmware and confirming the loader's memory location
+before continuing. Make sure your program always has a way to get back to the
+loader, such as reading a switch, if you wish to continue using nrfdude.
 
-  The nRF24LU1+ loader will not run on power up! The only way to get back into
-the loader is to manually jump to it in your firmware! The entry point for the
-loader on my particular chip is 0x7800. I highly recommend dumping your
-device's firmware and confirming the loader's memory location before
-continuing. Make sure your program always has a way to get back to the loader,
-such as reading a switch, if you wish to continue using nrfdude.
-
-  If your chip has a different loader location, then the nrfdude's write
+If your chip has a different loader location, then the nrfdude's write
 protection will not work. Modify the source and recompile before continuing
 use of nrfdude.
 
-Usage: nrfdude [options]
-Options:
- -h                    : This message
- -r <file>             : Read from device to <file>
- -w <file>             : Write from <file> to device
- -x                    : Allow writing to 0x7800-0x7FFF (bootloader)
+### Examples
+
+#### Runtime help.
+
+    $ nrfdude -h
+
+#### Read firmware to a file.
+
+    $ nrfdude -r dump.ihx
+
+#### Write firmware to the device.
+
+    $ nrfdude -w firmware.ihx
 
 
-= Notes =
+Notes
+-----
 
   1. Reading/dumping firmware may produce a HEX file that is smaller than
      expected. Records that have unwritten flash (only 0xFF bytes) are not
