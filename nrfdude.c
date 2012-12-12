@@ -40,7 +40,6 @@ static void print_help(void){
             " -r <file>             : Read from device to <file>\n"
             " -w <file>             : Write from <file> to device\n"
             " -x                    : Allow writing to 0x7800-0x7FFF (bootloader)\n"
-            " -d <device>           : 1: nRF24LU, 2: nRF8200 on nRFgo\n"
             " -n <number>           : Set led display on nRFgo motherboard\n"
             " -f                    : Reset device\n"
                 );
@@ -439,19 +438,63 @@ const char *nrf_version_str(devp dev){
 }
 
 
+/* open any known Nordic device
+ * returns 0 on success or a libusb error
+ */
+int nrf_open(libusb_context *usb, devp *dev){
+    int rc;
+    ssize_t i, n, nfound;
+    libusb_device **list, *found;
+    struct libusb_device_descriptor desc;
+
+    /* get all devices */
+    if((n = libusb_get_device_list(usb, &list)) <= 0){
+        /* failed to enumerate */
+        rc = n;
+        goto abort;
+    }
+
+    /* walk across them */
+    for(i = 0, nfound = 0; i < n; i++){
+        if((rc = libusb_get_device_descriptor(list[i], &desc))){
+            goto abort;
+        }
+        if(desc.idVendor == VENDOR_NORDIC){
+            switch(desc.idProduct){
+            case PID_NRF24LU:
+            case PID_NRFGO:
+                found = list[i];
+                nfound++;
+            }
+        }
+    }
+    if(nfound != 1){
+        /* no device or too many devices found */
+        rc = LIBUSB_ERROR_OTHER;
+        goto abort;
+    }
+
+    /* open it up */
+    rc = libusb_open(found, dev);
+abort:
+    libusb_free_device_list(list, 1);
+    return rc;
+}
+
+
 int main(int argc, char *argv[]){
     int c, exit_code, rc;
     libusb_context *usb = NULL;
     devp dev = NULL;
     int nrf_dev = 1; 
     int nrfgo_no = -1;
-    int pid = 0;
     bool reset_device = false;
     char *r_fn = NULL, *w_fn = NULL;
+    struct libusb_device_descriptor desc;
 
     printf("nrfdude v%s \n", VERSION_STRING);
 
-    while((c = getopt(argc, argv, "hxr:w:d:n:f")) != -1){
+    while((c = getopt(argc, argv, "hxr:w:n:f")) != -1){
         switch(c){
         case 'h':
             print_help();
@@ -464,9 +507,6 @@ int main(int argc, char *argv[]){
             break;
         case 'x':
             protect_bootloader = false;
-            break;
-        case 'd':
-            nrf_dev = atoi(optarg);
             break;
         case 'n':
             nrfgo_no = atoi(optarg);
@@ -488,29 +528,32 @@ int main(int argc, char *argv[]){
     /* Spamming stdout is NOT OK. */
     libusb_set_debug(usb, 0);
 
-    switch(nrf_dev){
-        case 1:
-            pid = PID_NRF24LU;
-            break;
-        case 2:
-            pid = PID_NRFGO;
-            break;
-        default:
-            pid = 0;
-            printf("[!] You didn't specify a device to program "
-                    "(use the -d option)\n");
-            goto error;
+    /* open a device */
+    if((rc = nrf_open(usb, &dev))){
+        printf("[!] Failed to open a Nordic device: %d\n", rc);
+        goto error;
     }
 
-    if((dev = libusb_open_device_with_vid_pid(usb, VENDOR_NORDIC, pid))
-            == NULL){
-        printf("[!] Failed to open %04X:%04X.\n", VENDOR_NORDIC, pid);
+    /* hack: synth nrf_dev # until a proper driver API is made */
+    if((rc = libusb_get_device_descriptor(libusb_get_device(dev), &desc))){
+        printf("[!] Failed to get device descriptor: %d\n", rc);
+        goto error;
+    }
+    switch(desc.idProduct){
+    case PID_NRF24LU:
+        nrf_dev = 1;
+        break;
+    case PID_NRFGO:
+        nrf_dev = 2;
+        break;
+    default:
+        printf("[!] Mishandled device.\n");
         goto error;
     }
 
     /* reset, setup, and claim */
-    if(libusb_reset_device(dev)){
-        printf("[!] Failed to reset device.\n");
+    if((rc = libusb_reset_device(dev))){
+        printf("[!] Failed to reset device: %d\n", rc);
         goto error;
     }
     if(libusb_set_configuration(dev, 1) || libusb_claim_interface(dev, 0)){
